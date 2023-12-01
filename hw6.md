@@ -149,3 +149,25 @@ model_results |>
 ```
 
 ![](hw6_files/figure-gfm/q1_plot-1.png)<!-- -->
+
+### Problem 2
+
+``` r
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2022-01-01",
+    date_max = "2022-12-31") |>
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) |>
+  select(name, id, everything())
+```
+
+    ## using cached file: /Users/ruohanhong/Library/Caches/org.R-project.R/R/rnoaa/noaa_ghcnd/USW00094728.dly
+
+    ## date created (size, mb): 2023-12-01 17:45:54.483354 (8.544)
+
+    ## file min/max dates: 1869-01-01 / 2023-11-30
