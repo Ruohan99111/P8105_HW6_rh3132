@@ -1,0 +1,4 @@
+---
+title: "HW6 document"
+output: github_document
+---
