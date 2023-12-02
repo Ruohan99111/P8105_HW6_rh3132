@@ -307,4 +307,4 @@ ci_log_value_adjusted
     ## 1           -9.26           -4.60
 
 The 95% confidence interval for r square is (0.889, 0.941). he 95%
-confidence interval for log (beta1\*beta2) is (-1.98, -4.00).
+confidence interval for log (beta1\*beta2) is (-4.60, -9.26).
