@@ -100,3 +100,109 @@ weather_df =
   select(name, id, everything())
 ```
 
+
+```{r Bootstrap analysis using weather data}
+bootstrap_analysis = weather_df |>
+  modelr::bootstrap(n = 5000) |>
+  mutate(
+    lm_models = map(strap, ~lm(tmax ~ tmin + prcp, data = .x)),
+    glance_data = map(lm_models, broom::glance)
+  ) |>
+  select(glance_data) |>
+  unnest(glance_data)
+
+tidy_analysis = weather_df |>
+  modelr::bootstrap(n = 5000) |>
+  mutate(
+    linear_models = map(strap, ~lm(tmax ~ tmin + prcp, data = .x)),
+    tidy_data = map(linear_models, broom::tidy)
+  ) |>
+  select(tidy_data) |>
+  unnest(tidy_data) |>
+  select(term, estimate) |>
+  pivot_wider(names_from = term, values_from = estimate) |>
+  unnest()
+
+# Bootstrap analysis with retaining 'term' and 'estimate'
+tidy_analysis <- weather_df |>
+  modelr::bootstrap(n = 5000) |>
+  mutate(
+    linear_models = map(strap, ~lm(tmax ~ tmin + prcp, data = .x)),
+    tidy_data = map(linear_models, broom::tidy)
+  ) |>
+  select(strap, tidy_data) |>
+  unnest(tidy_data)
+
+tidy_analysis_adjusted <- tidy_analysis |>
+  filter(term %in% c("tmin", "prcp")) |>
+  group_by(strap) |>
+  summarize(
+    tmin_coeff = estimate[term == "tmin"],
+    prcp_coeff = estimate[term == "prcp"]
+  ) |>
+  mutate(
+    prod_coeff = tmin_coeff * prcp_coeff,
+    logarithmic_value = log(prod_coeff)
+  ) |>
+  filter(!is.nan(logarithmic_value) & !is.infinite(logarithmic_value))
+
+```
+
+
+```{r adjusted calculation of logarithmic values}
+tidy_analysis_adjusted <- tidy_analysis |>
+  filter(term %in% c("tmin", "prcp")) |>
+  group_by(strap) |>
+  summarize(
+    prod_coeff = prod(estimate[term == "tmin"] * estimate[term == "prcp"])
+  ) |>
+  mutate(
+    logarithmic_value = log(prod_coeff)
+  ) |>
+  filter(!is.nan(logarithmic_value) & !is.infinite(logarithmic_value))
+
+```
+
+```{r Plotting the distribution of r-squared values}
+r_squared_plot = bootstrap_analysis |>
+  ggplot(aes(x = r.squared)) +
+  geom_density()
+
+print(r_squared_plot)
+
+```
+
+
+```{r Plotting the distribution of the logarithmic value}
+log_value_plot_adjusted = tidy_analysis_adjusted |>
+  ggplot(aes(x = logarithmic_value)) +
+  geom_density()
+
+print(log_value_plot_adjusted)
+```
+
+```{r Confidence intervals for R squared}
+ci_r_squared_adjusted = bootstrap_analysis |> 
+  summarize(
+    lower_bound_r2 = quantile(r.squared, 0.025), 
+    upper_bound_r2 = quantile(r.squared, 0.975)
+  )
+
+ci_r_squared_adjusted
+
+```
+
+```{r Calculating the confidence interval for the log value}
+ci_log_value_adjusted = tidy_analysis_adjusted |>
+  summarize(
+    lower_bound_log = quantile(logarithmic_value, 0.025), 
+    upper_bound_log = quantile(logarithmic_value, 0.975)
+  )
+
+ci_log_value_adjusted
+
+```
+The 95% confidence interval for r square is (0.889, 0.941).
+he 95% confidence interval for log (beta1*beta2) is (-1.98, -4.00).
+
+

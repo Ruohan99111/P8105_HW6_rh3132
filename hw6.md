@@ -171,3 +171,140 @@ weather_df =
     ## date created (size, mb): 2023-12-01 17:45:54.483354 (8.544)
 
     ## file min/max dates: 1869-01-01 / 2023-11-30
+
+``` r
+bootstrap_analysis = weather_df |>
+  modelr::bootstrap(n = 5000) |>
+  mutate(
+    lm_models = map(strap, ~lm(tmax ~ tmin + prcp, data = .x)),
+    glance_data = map(lm_models, broom::glance)
+  ) |>
+  select(glance_data) |>
+  unnest(glance_data)
+
+tidy_analysis = weather_df |>
+  modelr::bootstrap(n = 5000) |>
+  mutate(
+    linear_models = map(strap, ~lm(tmax ~ tmin + prcp, data = .x)),
+    tidy_data = map(linear_models, broom::tidy)
+  ) |>
+  select(tidy_data) |>
+  unnest(tidy_data) |>
+  select(term, estimate) |>
+  pivot_wider(names_from = term, values_from = estimate) |>
+  unnest()
+```
+
+    ## Warning: Values from `estimate` are not uniquely identified; output will contain
+    ## list-cols.
+    ## • Use `values_fn = list` to suppress this warning.
+    ## • Use `values_fn = {summary_fun}` to summarise duplicates.
+    ## • Use the following dplyr code to identify duplicates.
+    ##   {data} %>%
+    ##   dplyr::group_by(term) %>%
+    ##   dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+    ##   dplyr::filter(n > 1L)
+
+    ## Warning: `cols` is now required when using `unnest()`.
+    ## ℹ Please use `cols = c(`(Intercept)`, tmin, prcp)`.
+
+``` r
+# Bootstrap analysis with retaining 'term' and 'estimate'
+tidy_analysis <- weather_df |>
+  modelr::bootstrap(n = 5000) |>
+  mutate(
+    linear_models = map(strap, ~lm(tmax ~ tmin + prcp, data = .x)),
+    tidy_data = map(linear_models, broom::tidy)
+  ) |>
+  select(strap, tidy_data) |>
+  unnest(tidy_data)
+
+tidy_analysis_adjusted <- tidy_analysis |>
+  filter(term %in% c("tmin", "prcp")) |>
+  group_by(strap) |>
+  summarize(
+    tmin_coeff = estimate[term == "tmin"],
+    prcp_coeff = estimate[term == "prcp"]
+  ) |>
+  mutate(
+    prod_coeff = tmin_coeff * prcp_coeff,
+    logarithmic_value = log(prod_coeff)
+  ) |>
+  filter(!is.nan(logarithmic_value) & !is.infinite(logarithmic_value))
+```
+
+    ## Warning: There was 1 warning in `mutate()`.
+    ## ℹ In argument: `logarithmic_value = log(prod_coeff)`.
+    ## Caused by warning in `log()`:
+    ## ! NaNs produced
+
+``` r
+tidy_analysis_adjusted <- tidy_analysis |>
+  filter(term %in% c("tmin", "prcp")) |>
+  group_by(strap) |>
+  summarize(
+    prod_coeff = prod(estimate[term == "tmin"] * estimate[term == "prcp"])
+  ) |>
+  mutate(
+    logarithmic_value = log(prod_coeff)
+  ) |>
+  filter(!is.nan(logarithmic_value) & !is.infinite(logarithmic_value))
+```
+
+    ## Warning: There was 1 warning in `mutate()`.
+    ## ℹ In argument: `logarithmic_value = log(prod_coeff)`.
+    ## Caused by warning in `log()`:
+    ## ! NaNs produced
+
+``` r
+r_squared_plot = bootstrap_analysis |>
+  ggplot(aes(x = r.squared)) +
+  geom_density()
+
+print(r_squared_plot)
+```
+
+![](hw6_files/figure-gfm/Plotting%20the%20distribution%20of%20r-squared%20values-1.png)<!-- -->
+
+``` r
+log_value_plot_adjusted = tidy_analysis_adjusted |>
+  ggplot(aes(x = logarithmic_value)) +
+  geom_density()
+
+print(log_value_plot_adjusted)
+```
+
+![](hw6_files/figure-gfm/Plotting%20the%20distribution%20of%20the%20logarithmic%20value-1.png)<!-- -->
+
+``` r
+ci_r_squared_adjusted = bootstrap_analysis |> 
+  summarize(
+    lower_bound_r2 = quantile(r.squared, 0.025), 
+    upper_bound_r2 = quantile(r.squared, 0.975)
+  )
+
+ci_r_squared_adjusted
+```
+
+    ## # A tibble: 1 × 2
+    ##   lower_bound_r2 upper_bound_r2
+    ##            <dbl>          <dbl>
+    ## 1          0.889          0.941
+
+``` r
+ci_log_value_adjusted = tidy_analysis_adjusted |>
+  summarize(
+    lower_bound_log = quantile(logarithmic_value, 0.025), 
+    upper_bound_log = quantile(logarithmic_value, 0.975)
+  )
+
+ci_log_value_adjusted
+```
+
+    ## # A tibble: 1 × 2
+    ##   lower_bound_log upper_bound_log
+    ##             <dbl>           <dbl>
+    ## 1           -9.26           -4.60
+
+The 95% confidence interval for r square is (0.889, 0.941). he 95%
+confidence interval for log (beta1\*beta2) is (-1.98, -4.00).
