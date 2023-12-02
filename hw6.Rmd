@@ -206,3 +206,108 @@ The 95% confidence interval for r square is (0.889, 0.941).
 he 95% confidence interval for log (beta1*beta2) is (-4.60, -9.26).
 
 
+### Problem 3
+```{r import data for probelm 3}
+birthweight_df = read.csv('birthweight.csv', na =c("", "NA", "Unknown"))
+```
+
+```{r cleaning and names}
+birthweight_df = birthweight_df |>
+  mutate(
+    babysex = recode(babysex, "1" = "male", "2" = "female"),
+    frace = recode(frace, "1" = "White", "2" = "Black", "3" = "Asian", 
+                        "4" = "Puerto Rico", "8" = "Others", "9" = "Unknown"),
+    malform = recode(malform, "0" = "absent", "1" = "present"),
+     mrace = recode(mrace,"1" = "White", "2" = "Black", "3" = "Asian", 
+                        "4" = "Puerto Rico", "8" = "Others")
+         )
+```
+
+## Propose a regression model for birthweight
+My proposed regression model for birthweight `bwt` is a linear model that includes a wide range of predictors - both maternal characteristics and baby's characteristics. This model is a comprehensive approach, taking into account various factors that are hypothesized to impact birthweight.
+
+Selection of Predictors: The predictors in your model encompass several categories:
+Baby Characteristics: `babysex`, `blength`
+Maternal Characteristics: `delwt` (delivery weight), `mheight` (mother's height), `momage` (mother's age), `parity` (number of live births), `ppbmi` (pre-pregnancy BMI), `ppwt` (pre-pregnancy weight), `wtgain` (weight gain during pregnancy)
+Health and Lifestyle Factors: `malform` (presence of malformations), `smoken` (smoking habits)
+Socioeconomic Factors: `fincome` (family income)
+Race and Ethnicity: `frace` (father's race), `mrace` (mother's race)
+Pregnancy Specifics: `gaweeks` (gestational age), `pnumlbw` (number of low birth weight babies previously), `pnumsga` (number of small for gestational age babies previously)
+Hypothesis Behind Predictor Selection: The chosen predictors are based on existing research and theories regarding factors that influence birthweight. 
+
+```{r model}
+
+model <- lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight+ momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, 
+            data = birthweight_df)
+
+summary(model)
+```
+Several variables emerge as significant. Baby's length at birth (`blength`) and gestational age (`gaweeks`) are highly significant, indicating a strong positive association with birth weight. Notably, the baby's sex (`babysexmale`) also shows significance, suggesting a difference in birth weight between male and female babies. Mother's weight at delivery (`delwt`) and family income (`fincome`) positively correlate with birth weight, though the effect of income is relatively small. Interestingly, the mother's pre-pregnancy weight (`ppwt`) is negatively associated with birth weight, and maternal smoking (`smoken`) significantly reduces it, highlighting critical health considerations. Other factors, including race, presence of malformations, and mother's age at menarche, don't show significant impacts in this model. 
+
+```{r plot}
+birthweight_df <- birthweight_df |> 
+  add_predictions(model, var = "preds") |> 
+  add_residuals(model, var = "resids")
+
+# Plot of residuals against fitted values
+ggplot(birthweight_df, aes(x = preds, y = resids)) +
+  geom_point() +
+  geom_smooth(method = 'lm', se = FALSE) +
+  labs(x = "Fitted Values", y = "Residuals", title = "Plot of Residuals vs Fitted Values")
+```
+
+## Compare models
+```{r  length at birth and gestational age as predictors }
+model_1 <- lm(bwt ~ blength + gaweeks, data = birthweight_df)
+
+summary(model_1)
+```
+
+```{r Head Circumference, Length, Sex, and All Interactions}
+model_2<- lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex, data = birthweight_df)
+
+summary(model_2)
+```
+
+```{r cross-validation setup}
+cv_df <- birthweight_df |> 
+  modelr::crossv_mc(n = 100) |> 
+  mutate(
+    train_set = map(train, as_tibble),
+    test_set = map(test, as_tibble)
+  )
+```
+
+
+```{r Fit models on training sets and calculate RMSE on test sets}
+cv_results <- cv_df |> 
+  mutate(
+    model_fit = map(train_set, ~lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, data = .x)),
+    model_1_fit = map(train_set, ~lm(bwt ~ blength + gaweeks, data = .x)),
+    model_2_fit = map(train_set, ~lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex, data = .x))
+  ) |>
+  mutate(
+    rmse_model = map2_dbl(model_fit, test_set, ~modelr::rmse(.x, .y)),
+    rmse_model_1 = map2_dbl(model_1_fit, test_set, ~modelr::rmse(.x, .y)),
+    rmse_model_2 = map2_dbl(model_2_fit, test_set, ~modelr::rmse(.x, .y))
+  )
+```
+
+```{r Summarizing the RMSE for each model}
+
+summary_results <- cv_results |> 
+  select(rmse_model, rmse_model_1, rmse_model_2) |> 
+  pivot_longer(
+    everything(),
+    names_to = "model",
+    values_to = "rmse"
+  ) |> 
+  group_by(model) |> 
+  summarize(average_rmse = mean(rmse, na.rm = TRUE))
+
+summary_results
+
+```
+
+Based on the comparison, model 1 which is length at birth and gestational age as predictors has the largest error of 337, following by my model and model 2. Which that model 2, Head Circumference, Length, Sex, and All Interactions, is the best model compare to my model and model_1 because it has the smallest error of 292. 
+
