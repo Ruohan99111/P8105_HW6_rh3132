@@ -210,7 +210,7 @@ tidy_analysis = weather_df |>
 
 ``` r
 # Bootstrap analysis with retaining 'term' and 'estimate'
-tidy_analysis <- weather_df |>
+tidy_analysis = weather_df |>
   modelr::bootstrap(n = 5000) |>
   mutate(
     linear_models = map(strap, ~lm(tmax ~ tmin + prcp, data = .x)),
@@ -219,7 +219,7 @@ tidy_analysis <- weather_df |>
   select(strap, tidy_data) |>
   unnest(tidy_data)
 
-tidy_analysis_adjusted <- tidy_analysis |>
+tidy_analysis_adjusted = tidy_analysis |>
   filter(term %in% c("tmin", "prcp")) |>
   group_by(strap) |>
   summarize(
@@ -239,7 +239,7 @@ tidy_analysis_adjusted <- tidy_analysis |>
     ## ! NaNs produced
 
 ``` r
-tidy_analysis_adjusted <- tidy_analysis |>
+tidy_analysis_adjusted = tidy_analysis |>
   filter(term %in% c("tmin", "prcp")) |>
   group_by(strap) |>
   summarize(
@@ -335,7 +335,7 @@ and baby’s characteristics. This model is a comprehensive approach,
 taking into account various factors that are hypothesized to impact
 birthweight.
 
-Selection of Predictors: The predictors in your model encompass several
+Selection of Predictors: The predictors in my model encompass several
 categories: Baby Characteristics: `babysex`, `blength` Maternal
 Characteristics: `delwt` (delivery weight), `mheight` (mother’s height),
 `momage` (mother’s age), `parity` (number of live births), `ppbmi`
@@ -351,7 +351,7 @@ on existing research and theories regarding factors that influence
 birthweight.
 
 ``` r
-model <- lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight+ momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, 
+model = lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight+ momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, 
             data = birthweight_df)
 
 summary(model)
@@ -415,7 +415,7 @@ Other factors, including race, presence of malformations, and mother’s
 age at menarche, don’t show significant impacts in this model.
 
 ``` r
-birthweight_df <- birthweight_df |> 
+birthweight_df = birthweight_df |> 
   add_predictions(model, var = "preds") |> 
   add_residuals(model, var = "resids")
 ```
@@ -436,12 +436,12 @@ ggplot(birthweight_df, aes(x = preds, y = resids)) +
 
     ## `geom_smooth()` using formula = 'y ~ x'
 
-![](hw6_files/figure-gfm/plot-1.png)<!-- -->
+![](hw6_files/figure-gfm/plot%20my%20model%20residu-1.png)<!-- -->
 
 ## Compare models
 
 ``` r
-model_1 <- lm(bwt ~ blength + gaweeks, data = birthweight_df)
+model_1 = lm(bwt ~ blength + gaweeks, data = birthweight_df)
 
 summary(model_1)
 ```
@@ -467,7 +467,7 @@ summary(model_1)
     ## F-statistic:  2958 on 2 and 4339 DF,  p-value: < 2.2e-16
 
 ``` r
-model_2<- lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex, data = birthweight_df)
+model_2 = lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex, data = birthweight_df)
 
 summary(model_2)
 ```
@@ -498,7 +498,7 @@ summary(model_2)
     ## F-statistic:  1563 on 6 and 4335 DF,  p-value: < 2.2e-16
 
 ``` r
-cv_df <- birthweight_df |> 
+cv_df = birthweight_df |> 
   modelr::crossv_mc(n = 100) |> 
   mutate(
     train_set = map(train, as_tibble),
@@ -507,7 +507,7 @@ cv_df <- birthweight_df |>
 ```
 
 ``` r
-cv_results <- cv_df |> 
+cv_results = cv_df |> 
   mutate(
     model_fit = map(train_set, ~lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, data = .x)),
     model_1_fit = map(train_set, ~lm(bwt ~ blength + gaweeks, data = .x)),
@@ -529,7 +529,7 @@ cv_results <- cv_df |>
     ## ℹ Run `dplyr::last_dplyr_warnings()` to see the 99 remaining warnings.
 
 ``` r
-summary_results <- cv_results |> 
+summary_results = cv_results |> 
   select(rmse_model, rmse_model_1, rmse_model_2) |> 
   pivot_longer(
     everything(),

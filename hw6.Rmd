@@ -50,7 +50,6 @@ baltimore_glm |>
 
 The odds ratio is 0.426, with confidence interval of 0.325 and 0.558. 
 
-
 ```{r q1_glm_all_cities}
 model_results = 
   homicide_df |> 
@@ -124,7 +123,7 @@ tidy_analysis = weather_df |>
   unnest()
 
 # Bootstrap analysis with retaining 'term' and 'estimate'
-tidy_analysis <- weather_df |>
+tidy_analysis = weather_df |>
   modelr::bootstrap(n = 5000) |>
   mutate(
     linear_models = map(strap, ~lm(tmax ~ tmin + prcp, data = .x)),
@@ -133,7 +132,7 @@ tidy_analysis <- weather_df |>
   select(strap, tidy_data) |>
   unnest(tidy_data)
 
-tidy_analysis_adjusted <- tidy_analysis |>
+tidy_analysis_adjusted = tidy_analysis |>
   filter(term %in% c("tmin", "prcp")) |>
   group_by(strap) |>
   summarize(
@@ -150,7 +149,7 @@ tidy_analysis_adjusted <- tidy_analysis |>
 
 
 ```{r adjusted calculation of logarithmic values}
-tidy_analysis_adjusted <- tidy_analysis |>
+tidy_analysis_adjusted = tidy_analysis |>
   filter(term %in% c("tmin", "prcp")) |>
   group_by(strap) |>
   summarize(
@@ -226,7 +225,7 @@ birthweight_df = birthweight_df |>
 ## Propose a regression model for birthweight
 My proposed regression model for birthweight `bwt` is a linear model that includes a wide range of predictors - both maternal characteristics and baby's characteristics. This model is a comprehensive approach, taking into account various factors that are hypothesized to impact birthweight.
 
-Selection of Predictors: The predictors in your model encompass several categories:
+Selection of Predictors: The predictors in my model encompass several categories:
 Baby Characteristics: `babysex`, `blength`
 Maternal Characteristics: `delwt` (delivery weight), `mheight` (mother's height), `momage` (mother's age), `parity` (number of live births), `ppbmi` (pre-pregnancy BMI), `ppwt` (pre-pregnancy weight), `wtgain` (weight gain during pregnancy)
 Health and Lifestyle Factors: `malform` (presence of malformations), `smoken` (smoking habits)
@@ -235,17 +234,17 @@ Race and Ethnicity: `frace` (father's race), `mrace` (mother's race)
 Pregnancy Specifics: `gaweeks` (gestational age), `pnumlbw` (number of low birth weight babies previously), `pnumsga` (number of small for gestational age babies previously)
 Hypothesis Behind Predictor Selection: The chosen predictors are based on existing research and theories regarding factors that influence birthweight. 
 
-```{r model}
+```{r my model}
 
-model <- lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight+ momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, 
+model = lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight+ momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, 
             data = birthweight_df)
 
 summary(model)
 ```
 Several variables emerge as significant. Baby's length at birth (`blength`) and gestational age (`gaweeks`) are highly significant, indicating a strong positive association with birth weight. Notably, the baby's sex (`babysexmale`) also shows significance, suggesting a difference in birth weight between male and female babies. Mother's weight at delivery (`delwt`) and family income (`fincome`) positively correlate with birth weight, though the effect of income is relatively small. Interestingly, the mother's pre-pregnancy weight (`ppwt`) is negatively associated with birth weight, and maternal smoking (`smoken`) significantly reduces it, highlighting critical health considerations. Other factors, including race, presence of malformations, and mother's age at menarche, don't show significant impacts in this model. 
 
-```{r plot}
-birthweight_df <- birthweight_df |> 
+```{r plot my model residu}
+birthweight_df = birthweight_df |> 
   add_predictions(model, var = "preds") |> 
   add_residuals(model, var = "resids")
 
@@ -258,19 +257,19 @@ ggplot(birthweight_df, aes(x = preds, y = resids)) +
 
 ## Compare models
 ```{r  length at birth and gestational age as predictors }
-model_1 <- lm(bwt ~ blength + gaweeks, data = birthweight_df)
+model_1 = lm(bwt ~ blength + gaweeks, data = birthweight_df)
 
 summary(model_1)
 ```
 
 ```{r Head Circumference, Length, Sex, and All Interactions}
-model_2<- lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex, data = birthweight_df)
+model_2 = lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex, data = birthweight_df)
 
 summary(model_2)
 ```
 
 ```{r cross-validation setup}
-cv_df <- birthweight_df |> 
+cv_df = birthweight_df |> 
   modelr::crossv_mc(n = 100) |> 
   mutate(
     train_set = map(train, as_tibble),
@@ -280,7 +279,7 @@ cv_df <- birthweight_df |>
 
 
 ```{r Fit models on training sets and calculate RMSE on test sets}
-cv_results <- cv_df |> 
+cv_results = cv_df |> 
   mutate(
     model_fit = map(train_set, ~lm(bwt ~ babysex + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, data = .x)),
     model_1_fit = map(train_set, ~lm(bwt ~ blength + gaweeks, data = .x)),
@@ -295,7 +294,7 @@ cv_results <- cv_df |>
 
 ```{r Summarizing the RMSE for each model}
 
-summary_results <- cv_results |> 
+summary_results = cv_results |> 
   select(rmse_model, rmse_model_1, rmse_model_2) |> 
   pivot_longer(
     everything(),
